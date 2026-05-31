@@ -1,3 +1,5 @@
+import { publicUrl } from './publicUrl';
+
 /**
  * Scene image paths — numbered to match LEVELS page order in types.ts.
  *
@@ -24,22 +26,22 @@
  *  19–20| loc_gym_inner, finish | (none)
  */
 export const LEVEL_IMAGES = {
-  gate: '/images/levels/02-gate.jpg',
-  alarm: '/images/levels/03-alarm.jpg',
-  calendar: '/images/levels/04-calendar.jpg',
-  safe: '/images/levels/05-safe.jpg',
-  tabletEnvelope: '/images/levels/06-tablet-envelope.jpg',
-  starMap: '/images/levels/07-star-map.png',
-  hintMap: '/images/levels/07-hint-map.png',
-  locationChoice8: '/images/levels/08-location-choice.jpg',
-  dormGate: '/images/levels/09-dorm-gate.jpg',
-  magicSquare: '/images/levels/10-magic-square.jpg',
-  locationChoice11: '/images/levels/11-location-choice.jpg',
-  mirrorPostcard: '/images/levels/12-mirror-postcard.png',
-  sheetMusic: '/images/levels/13-sheet-music.jpg',
-  locationChoice14: '/images/levels/14-location-choice.jpg',
-  lawnDiary: '/images/levels/15-lawn-diary.png',
-  banner: '/images/levels/16-banner.png',
-  locationChoice17: '/images/levels/17-location-choice.jpg',
-  gymOuterLock: '/images/levels/18-gym-outer-lock.png',
+  gate: publicUrl('/images/levels/02-gate.jpg'),
+  alarm: publicUrl('/images/levels/03-alarm.jpg'),
+  calendar: publicUrl('/images/levels/04-calendar.jpg'),
+  safe: publicUrl('/images/levels/05-safe.jpg'),
+  tabletEnvelope: publicUrl('/images/levels/06-tablet-envelope.jpg'),
+  starMap: publicUrl('/images/levels/07-star-map.png'),
+  hintMap: publicUrl('/images/levels/07-hint-map.png'),
+  locationChoice8: publicUrl('/images/levels/08-location-choice.jpg'),
+  dormGate: publicUrl('/images/levels/09-dorm-gate.jpg'),
+  magicSquare: publicUrl('/images/levels/10-magic-square.jpg'),
+  locationChoice11: publicUrl('/images/levels/11-location-choice.jpg'),
+  mirrorPostcard: publicUrl('/images/levels/12-mirror-postcard.png'),
+  sheetMusic: publicUrl('/images/levels/13-sheet-music.jpg'),
+  locationChoice14: publicUrl('/images/levels/14-location-choice.jpg'),
+  lawnDiary: publicUrl('/images/levels/15-lawn-diary.png'),
+  banner: publicUrl('/images/levels/16-banner.png'),
+  locationChoice17: publicUrl('/images/levels/17-location-choice.jpg'),
+  gymOuterLock: publicUrl('/images/levels/18-gym-outer-lock.png'),
 } as const;
