@@ -1,5 +1,3 @@
-import { publicUrl } from './publicUrl';
-
 /**
  * Scene image paths — numbered to match LEVELS page order in types.ts.
  *
@@ -26,22 +24,22 @@ import { publicUrl } from './publicUrl';
  *  19–20| loc_gym_inner, finish | (none)
  */
 export const LEVEL_IMAGES = {
-  gate: publicUrl('/images/levels/02-gate.jpg'),
-  alarm: publicUrl('/images/levels/03-alarm.jpg'),
-  calendar: publicUrl('/images/levels/04-calendar.jpg'),
-  safe: publicUrl('/images/levels/05-safe.jpg'),
-  tabletEnvelope: publicUrl('/images/levels/06-tablet-envelope.jpg'),
-  starMap: publicUrl('/images/levels/07-star-map.png'),
-  hintMap: publicUrl('/images/levels/07-hint-map.png'),
-  locationChoice8: publicUrl('/images/levels/08-location-choice.jpg'),
-  dormGate: publicUrl('/images/levels/09-dorm-gate.jpg'),
-  magicSquare: publicUrl('/images/levels/10-magic-square.jpg'),
-  locationChoice11: publicUrl('/images/levels/11-location-choice.jpg'),
-  mirrorPostcard: publicUrl('/images/levels/12-mirror-postcard.png'),
-  sheetMusic: publicUrl('/images/levels/13-sheet-music.jpg'),
-  locationChoice14: publicUrl('/images/levels/14-location-choice.jpg'),
-  lawnDiary: publicUrl('/images/levels/15-lawn-diary.png'),
-  banner: publicUrl('/images/levels/16-banner.png'),
-  locationChoice17: publicUrl('/images/levels/17-location-choice.jpg'),
-  gymOuterLock: publicUrl('/images/levels/18-gym-outer-lock.png'),
+  gate: `${import.meta.env.BASE_URL}images/levels/02-gate.jpg`,
+  alarm: `${import.meta.env.BASE_URL}images/levels/03-alarm.jpg`,
+  calendar: `${import.meta.env.BASE_URL}images/levels/04-calendar.jpg`,
+  safe: `${import.meta.env.BASE_URL}images/levels/05-safe.jpg`,
+  tabletEnvelope: `${import.meta.env.BASE_URL}images/levels/06-tablet-envelope.jpg`,
+  starMap: `${import.meta.env.BASE_URL}images/levels/07-star-map.png`,
+  hintMap: `${import.meta.env.BASE_URL}images/levels/07-hint-map.png`,
+  locationChoice8: `${import.meta.env.BASE_URL}images/levels/08-location-choice.jpg`,
+  dormGate: `${import.meta.env.BASE_URL}images/levels/09-dorm-gate.jpg`,
+  magicSquare: `${import.meta.env.BASE_URL}images/levels/10-magic-square.jpg`,
+  locationChoice11: `${import.meta.env.BASE_URL}images/levels/11-location-choice.jpg`,
+  mirrorPostcard: `${import.meta.env.BASE_URL}images/levels/12-mirror-postcard.png`,
+  sheetMusic: `${import.meta.env.BASE_URL}images/levels/13-sheet-music.jpg`,
+  locationChoice14: `${import.meta.env.BASE_URL}images/levels/14-location-choice.jpg`,
+  lawnDiary: `${import.meta.env.BASE_URL}images/levels/15-lawn-diary.png`,
+  banner: `${import.meta.env.BASE_URL}images/levels/16-banner.png`,
+  locationChoice17: `${import.meta.env.BASE_URL}images/levels/17-location-choice.jpg`,
+  gymOuterLock: `${import.meta.env.BASE_URL}images/levels/18-gym-outer-lock.png`,
 } as const;

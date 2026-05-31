@@ -1,13 +1,7 @@
-import { publicUrl } from '../publicUrl';
-
 interface ImagePlaceholderProps {
   src: string;
   alt: string;
   className?: string;
-}
-
-function resolveSrc(src: string): string {
-  return src.startsWith('/') ? publicUrl(src) : src;
 }
 
 /** Scene image with a dashed fallback when the file is missing. */
@@ -15,7 +9,7 @@ export function ImagePlaceholder({ src, alt, className = '' }: ImagePlaceholderP
   return (
     <figure className={`relative ${className}`}>
       <img
-        src={resolveSrc(src)}
+        src={src}
         alt={alt}
         className="w-full rounded-xl border border-stone-800 object-contain bg-stone-950/60 min-h-[140px]"
         onError={(e) => {
