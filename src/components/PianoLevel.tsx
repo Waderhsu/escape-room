@@ -50,7 +50,7 @@ export function PianoLevel({ onSuccess }: PianoLevelProps) {
             className="w-full text-center font-sans text-xl py-3 border-2 border-slate-700 bg-slate-950 text-white rounded-xl focus:border-amber-500 outline-none"
           />
           <button type="submit" className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:brightness-110 text-white font-black rounded-xl text-sm transition tracking-widest uppercase shadow-lg shadow-amber-600/10">
-            發言歌曲名稱
+            確認
           </button>
         </form>
         {error && <p className="text-center text-red-400 font-semibold text-xs py-2 bg-red-950/25 border border-red-500/10 rounded-lg mt-3 w-full max-w-sm">{error}</p>}

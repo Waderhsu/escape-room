@@ -61,7 +61,7 @@ export function MirrorWallLevel({ onSuccess }: MirrorWallLevelProps) {
           className="w-full text-center tracking-[10px] font-mono text-2xl py-3 border border-stone-700 bg-stone-950 text-white rounded-xl focus:border-purple-500 outline-none"
         />
         <button type="submit" className="w-full py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl transition">
-          前往該練琴室
+          前往
         </button>
         {error && <p className="text-red-400 text-xs text-center font-semibold">{error}</p>}
       </form>
