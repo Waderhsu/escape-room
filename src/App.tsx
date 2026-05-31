@@ -72,8 +72,34 @@ export default function App() {
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
   const [confettiActive, setConfettiActive] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const navGenerationRef = useRef(0);
   const [intermissionChoiceError, setIntermissionChoiceError] = useState<string>("");
   const [intermissionSuccess, setIntermissionSuccess] = useState<string>("");
+
+  const cancelPendingNavigation = () => {
+    navGenerationRef.current += 1;
+    if (navTimerRef.current) {
+      clearTimeout(navTimerRef.current);
+      navTimerRef.current = null;
+    }
+  };
+
+  const scheduleAdvance = (nextLvId: string, delay: number) => {
+    cancelPendingNavigation();
+    const gen = navGenerationRef.current;
+    navTimerRef.current = setTimeout(() => {
+      if (gen !== navGenerationRef.current) return;
+      advanceToLevel(nextLvId);
+      navTimerRef.current = null;
+    }, delay);
+  };
+
+  useEffect(() => {
+    cancelPendingNavigation();
+    setIntermissionChoiceError("");
+    setIntermissionSuccess("");
+  }, [state.currentLevelId]);
 
   useEffect(() => {
     audioEngine.setBgmEnabled(bgAmbient);
@@ -154,6 +180,7 @@ export default function App() {
 
   const triggerReset = () => {
     audioEngine.playBeep(300, 0.2);
+    cancelPendingNavigation();
     localStorage.removeItem(LOCAL_STORAGE_KEY);
     setState({
       currentLevelId: "intro",
@@ -216,7 +243,7 @@ export default function App() {
     if (choice === "宿舍") {
       audioEngine.playBeep(880, 0.2);
       setIntermissionSuccess("✅ 聰明的選擇。請立刻前往宿舍，跑起來吧！");
-      setTimeout(() => advanceToLevel("loc_dorm_gate"), 1200);
+      scheduleAdvance("loc_dorm_gate", 1200);
     } else {
       setIntermissionChoiceError("❌ 嗶！你太讓我失望了，我不是說了我討厭這裡嗎？請重新閱讀我的詩！");
       audioEngine.playBeep(180, 0.3);
@@ -241,7 +268,7 @@ export default function App() {
     if (choice === "藝文館") {
       audioEngine.playBeep(880, 0.2);
       setIntermissionSuccess("✅ 算你們有點眼光。帶著那半張殘破的星夜，前往藝文館一樓吧！");
-      setTimeout(() => advanceToLevel("loc_art_mirror"), 2000);
+      scheduleAdvance("loc_art_mirror", 2000);
     } else if (choice === "體育館") {
       setIntermissionChoiceError("❌ 難道那塊餅乾堵住了你們的觀察力？梵谷可不會在操場上揮灑顏料！請看清楚手上的線索，再選一次！");
       audioEngine.playBeep(180, 0.3);
@@ -266,7 +293,7 @@ export default function App() {
     if (choice === "小學樓") {
       audioEngine.playBeep(880, 0.2);
       setIntermissionSuccess("✅ 解鎖成功！溜滑梯的邊角隱藏著最後的秘密，去那裡，集齊屬於你們的畢業記憶。");
-      setTimeout(() => advanceToLevel("loc_primary_grass"), 1200);
+      scheduleAdvance("loc_primary_grass", 1200);
     } else {
       setIntermissionChoiceError("❌ 那裡只有汗水與競賽，沒有我們遺失的純真，再找找看吧！");
       audioEngine.playBeep(180, 0.3);
@@ -280,9 +307,10 @@ export default function App() {
     if (choice === "體育館") {
       audioEngine.playBeep(880, 0.2);
       setIntermissionSuccess("✅ 解鎖成功！來體育館找我吧，找回屬於你們的驚喜。");
-      setTimeout(() => advanceToLevel("loc_gym_outer"), 1200);
+      scheduleAdvance("loc_gym_outer", 1200);
     } else {
       setIntermissionChoiceError("航線已鎖定終點，請前往體育館。");
+      audioEngine.playBeep(180, 0.3);
     }
   };
 

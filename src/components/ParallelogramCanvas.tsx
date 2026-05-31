@@ -55,14 +55,15 @@ export function ParallelogramCanvas({ onSuccess }: ParallelogramCanvasProps) {
   const [sliderX, setSliderX] = useState(50);
   const [dragging, setDragging] = useState(false);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const onSuccessRef = useRef(onSuccess);
+  onSuccessRef.current = onSuccess;
   const config = getStageConfig(stage);
 
   useEffect(() => {
-    if (stage === 4) {
-      const t = setTimeout(onSuccess, 3500);
-      return () => clearTimeout(t);
-    }
-  }, [stage, onSuccess]);
+    if (stage !== 4) return;
+    const t = setTimeout(() => onSuccessRef.current(), 3500);
+    return () => clearTimeout(t);
+  }, [stage]);
 
   const reset = () => {
     audioEngine.playBeep(400, 0.1);
