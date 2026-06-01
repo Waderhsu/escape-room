@@ -14,7 +14,7 @@
  *   9   | loc_dorm_gate         | 09-dorm-gate.jpg
  *  10   | loc_dorm_lounge       | 10-magic-square.jpg
  *  11   | loc_intermission2     | 11-location-choice.jpg
- *  12   | loc_art_mirror        | 12-mirror-postcard.png
+ *  12   | loc_art_mirror        | 12-mirror-postcard.jpg
  *  13   | loc_art_piano         | 13-sheet-music.jpg
  *  14   | loc_intermission3     | 14-location-choice.jpg
  *  15   | loc_primary_grass     | 15-lawn-diary.png
@@ -35,7 +35,7 @@ export const LEVEL_IMAGES = {
   dormGate: `${import.meta.env.BASE_URL}images/levels/09-dorm-gate.jpg`,
   magicSquare: `${import.meta.env.BASE_URL}images/levels/10-magic-square.jpg`,
   locationChoice11: `${import.meta.env.BASE_URL}images/levels/11-location-choice.jpg`,
-  mirrorPostcard: `${import.meta.env.BASE_URL}images/levels/12-mirror-postcard.png`,
+  mirrorPostcard: `${import.meta.env.BASE_URL}images/levels/12-mirror-postcard.jpg`,
   sheetMusic: `${import.meta.env.BASE_URL}images/levels/13-sheet-music.jpg`,
   locationChoice14: `${import.meta.env.BASE_URL}images/levels/14-location-choice.jpg`,
   lawnDiary: `${import.meta.env.BASE_URL}images/levels/15-lawn-diary.png`,

@@ -8,9 +8,13 @@ import { LEVEL_IMAGES } from '../levelAssets';
 
 interface AlarmLockdownProps {
   onSuccess: () => void;
+  onFailure: () => void;
 }
 
-const INITIAL_SECONDS = 5 * 60;
+/** 警報倒數秒數（預設 5 分鐘 = 300）。改這裡即可調整時間。 */
+export const ALARM_COUNTDOWN_SECONDS = 5 * 60;
+
+const INITIAL_SECONDS = ALARM_COUNTDOWN_SECONDS;
 
 function formatTime(totalSeconds: number) {
   const m = Math.floor(totalSeconds / 60);
@@ -18,13 +22,15 @@ function formatTime(totalSeconds: number) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-export function AlarmLockdown({ onSuccess }: AlarmLockdownProps) {
+export function AlarmLockdown({ onSuccess, onFailure }: AlarmLockdownProps) {
   const [timeLeft, setTimeLeft] = useState(INITIAL_SECONDS);
   const [answer, setAnswer] = useState('');
   const [error, setError] = useState('');
   const [alarmOn, setAlarmOn] = useState(true);
   const stopAlarmRef = useRef<(() => void) | null>(null);
   const timedOutRef = useRef(false);
+  const onFailureRef = useRef(onFailure);
+  onFailureRef.current = onFailure;
 
   const isUrgent = timeLeft <= 60;
 
@@ -46,13 +52,13 @@ export function AlarmLockdown({ onSuccess }: AlarmLockdownProps) {
         if (prev > 1) return prev - 1;
         if (!timedOutRef.current) {
           timedOutRef.current = true;
+          stopAlarmRef.current?.();
+          stopAlarmRef.current = null;
           audioEngine.playBeep(150, 1, 'sawtooth');
-          window.alert('🚨 系統警報連通！5 分鐘已到，防禦程序重置。');
-          window.setTimeout(() => {
-            timedOutRef.current = false;
-          }, 500);
+          audioEngine.playBeep(110, 0.8, 'sawtooth');
+          onFailureRef.current();
         }
-        return INITIAL_SECONDS;
+        return 0;
       });
     }, 1000);
     return () => window.clearInterval(timer);
@@ -121,7 +127,7 @@ export function AlarmLockdown({ onSuccess }: AlarmLockdownProps) {
         <div className="bg-[#0a0f0d] border border-[#22c55e]/25 rounded-xl p-4 sm:p-5 font-mono space-y-4 shadow-inner">
           <div className="text-[#22c55e] text-center space-y-3">
             <p className="text-sm font-bold border-b border-[#22c55e]/25 pb-2 tracking-wide">校內警報閥閉系統</p>
-            <div className="text-xl sm:text-2xl font-bold tracking-widest">? ? 10 17 26 ? 50</div>
+            <div className="text-xl sm:text-2xl font-bold tracking-widest">? ? 10 17 26 ?? 50</div>
           </div>
           <p className="text-[11px] sm:text-xs leading-relaxed text-stone-400 text-center bg-stone-950/60 border border-stone-800 rounded-lg p-3">
             「目前的干擾頻率為非穩定狀態，請找出缺失的頻率數值與關鍵頻率的位置，並轉化為代碼中斷警報。」

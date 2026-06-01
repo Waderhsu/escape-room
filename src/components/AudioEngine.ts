@@ -32,6 +32,39 @@ class AudioEngine {
   private bgmEnabled = false;
   private currentProfile: BgmProfile | null = null;
   private proceduralHandle: ProceduralHandle | null = null;
+  private bgmRequestId = 0;
+  private static readonly AUDIO_UNLOCK_KEY = 'escape-room-audio-unlocked';
+
+  markAudioUnlocked() {
+    try {
+      sessionStorage.setItem(AudioEngine.AUDIO_UNLOCK_KEY, '1');
+    } catch {
+      /* storage unavailable */
+    }
+  }
+
+  hasAudioUnlocked() {
+    try {
+      return sessionStorage.getItem(AudioEngine.AUDIO_UNLOCK_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  async unlockAudio() {
+    this.initCtx();
+    if (!this.ctx) return;
+    if (this.ctx.state === 'suspended') {
+      try {
+        await this.ctx.resume();
+      } catch {
+        /* ignore */
+      }
+    }
+    if (this.ctx.state === 'running') {
+      this.markAudioUnlocked();
+    }
+  }
 
   initCtx() {
     if (!this.ctx) {
@@ -39,7 +72,11 @@ class AudioEngine {
       if (Ctx) this.ctx = new Ctx();
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      void this.ctx.resume();
+      void this.ctx.resume().then(() => {
+        if (this.ctx?.state === 'running') this.markAudioUnlocked();
+      });
+    } else if (this.ctx?.state === 'running') {
+      this.markAudioUnlocked();
     }
   }
 
@@ -52,25 +89,62 @@ class AudioEngine {
     return this.bgmEnabled;
   }
 
+  isBgmActuallyPlaying() {
+    return (
+      (this.bgmAudio !== null && !this.bgmAudio.paused) ||
+      this.proceduralHandle !== null
+    );
+  }
+
+  /** Start or resume BGM; safe to call after refresh / tab focus. */
+  async ensureLevelBgm(config: BgmConfig) {
+    if (!this.bgmEnabled) return;
+
+    await this.unlockAudio();
+    if (!this.bgmEnabled) return;
+
+    if (this.isBgmActuallyPlaying() && this.currentProfile === config.profile) {
+      return;
+    }
+
+    await this.playLevelBgm(config);
+
+    if (!this.bgmEnabled) return;
+    if (this.isBgmActuallyPlaying()) return;
+
+    await new Promise((r) => window.setTimeout(r, 80));
+    if (!this.bgmEnabled) return;
+    if (this.isBgmActuallyPlaying() && this.currentProfile === config.profile) return;
+
+    await this.playLevelBgm(config);
+  }
+
   async playLevelBgm(config: BgmConfig) {
     if (!this.bgmEnabled) return;
     const sameProfilePlaying =
-      this.currentProfile === config.profile &&
-      ((this.bgmAudio && !this.bgmAudio.paused) || this.proceduralHandle !== null);
+      this.currentProfile === config.profile && this.isBgmActuallyPlaying();
     if (sameProfilePlaying) return;
 
     this.stopBgm();
+    const requestId = this.bgmRequestId;
     this.currentProfile = config.profile;
 
     if (config.src) {
-      const ok = await this.tryPlayMp3(config.src);
+      const ok = await this.tryPlayMp3(config.src, requestId);
+      if (!this.isBgmRequestActive(requestId)) return;
       if (ok) return;
     }
 
+    if (!this.isBgmRequestActive(requestId)) return;
     this.startProcedural(config.profile);
   }
 
+  private isBgmRequestActive(requestId: number) {
+    return this.bgmEnabled && requestId === this.bgmRequestId;
+  }
+
   stopBgm() {
+    this.bgmRequestId += 1;
     if (this.bgmAudio) {
       this.bgmAudio.pause();
       this.bgmAudio.src = '';
@@ -95,7 +169,7 @@ class AudioEngine {
     this.currentProfile = null;
   }
 
-  private tryPlayMp3(src: string): Promise<boolean> {
+  private tryPlayMp3(src: string, requestId: number): Promise<boolean> {
     return new Promise((resolve) => {
       let settled = false;
       const finish = (ok: boolean) => {
@@ -117,10 +191,23 @@ class AudioEngine {
       audio.addEventListener(
         'canplaythrough',
         () => {
+          if (!this.isBgmRequestActive(requestId)) {
+            audio.pause();
+            audio.removeAttribute('src');
+            finish(false);
+            return;
+          }
           audio
             .play()
             .then(() => {
+              if (!this.isBgmRequestActive(requestId)) {
+                audio.pause();
+                audio.removeAttribute('src');
+                finish(false);
+                return;
+              }
               this.bgmAudio = audio;
+              this.markAudioUnlocked();
               finish(true);
             })
             .catch(() => finish(false));

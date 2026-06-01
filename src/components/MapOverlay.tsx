@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'motion/react';
-import { Check, Compass, MapPin, TriangleAlert } from 'lucide-react';
+import { Check, Compass, MapPin, RotateCcw, RotateCw, TriangleAlert } from 'lucide-react';
 import { audioEngine } from './AudioEngine';
 import { LevelHeader } from './LevelHeader';
 import { LEVEL_IMAGES } from '../levelAssets';
@@ -56,7 +56,20 @@ export function MapOverlay({ onSuccess }: MapOverlayProps) {
   const [loc4, setLoc4] = useState('');
   const [error, setError] = useState('');
 
+  const rotateRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ lastPointerAngle: number } | null>(null);
+
+  const applyRotationDelta = useCallback((delta: number) => {
+    setAngle((prev) => {
+      const next = normalizeAngle(prev + delta);
+      const prevRounded = Math.round(prev);
+      const nextRounded = Math.round(next);
+      if (nextRounded % 15 === 0 && prevRounded !== nextRounded) {
+        audioEngine.playBeep(300 + nextRounded / 2, 0.02, 'sine');
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (aligned || isDragging) return;
@@ -69,40 +82,54 @@ export function MapOverlay({ onSuccess }: MapOverlayProps) {
     }
   }, [angle, aligned, isDragging]);
 
+  useEffect(() => {
+    if (!isDragging || aligned) return;
+
+    const onMove = (e: PointerEvent) => {
+      if (!dragRef.current || !rotateRef.current) return;
+      e.preventDefault();
+      const rect = rotateRef.current.getBoundingClientRect();
+      const currentPointer = pointerAngle(e.clientX, e.clientY, rect);
+      let delta = currentPointer - dragRef.current.lastPointerAngle;
+      if (delta > 180) delta -= 360;
+      if (delta < -180) delta += 360;
+
+      setAngle((prev) => {
+        const next = normalizeAngle(prev + delta);
+        const prevRounded = Math.round(prev);
+        const nextRounded = Math.round(next);
+        if (nextRounded % 15 === 0 && prevRounded !== nextRounded) {
+          audioEngine.playBeep(300 + nextRounded / 2, 0.02, 'sine');
+        }
+        return next;
+      });
+      dragRef.current.lastPointerAngle = currentPointer;
+    };
+
+    const onEnd = () => {
+      dragRef.current = null;
+      setIsDragging(false);
+    };
+
+    document.addEventListener('pointermove', onMove, { passive: false });
+    document.addEventListener('pointerup', onEnd);
+    document.addEventListener('pointercancel', onEnd);
+
+    return () => {
+      document.removeEventListener('pointermove', onMove);
+      document.removeEventListener('pointerup', onEnd);
+      document.removeEventListener('pointercancel', onEnd);
+    };
+  }, [isDragging, aligned]);
+
   const handlePointerDown = (e: React.PointerEvent) => {
     if (aligned) return;
+    e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     dragRef.current = { lastPointerAngle: pointerAngle(e.clientX, e.clientY, rect) };
     setIsDragging(true);
-    e.currentTarget.setPointerCapture(e.pointerId);
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    if (!dragRef.current || aligned || !isDragging) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const currentPointer = pointerAngle(e.clientX, e.clientY, rect);
-    let delta = currentPointer - dragRef.current.lastPointerAngle;
-    if (delta > 180) delta -= 360;
-    if (delta < -180) delta += 360;
-
-    setAngle((prev) => {
-      const next = normalizeAngle(prev + delta);
-      const prevRounded = Math.round(prev);
-      const nextRounded = Math.round(next);
-      if (nextRounded % 15 === 0 && prevRounded !== nextRounded) {
-        audioEngine.playBeep(300 + nextRounded / 2, 0.02, 'sine');
-      }
-      return next;
-    });
-    dragRef.current.lastPointerAngle = currentPointer;
-  };
-
-  const endDrag = (e: React.PointerEvent) => {
-    if (!isDragging) return;
-    dragRef.current = null;
-    setIsDragging(false);
-    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-      e.currentTarget.releasePointerCapture(e.pointerId);
+    if (e.currentTarget.setPointerCapture) {
+      e.currentTarget.setPointerCapture(e.pointerId);
     }
   };
 
@@ -136,7 +163,7 @@ export function MapOverlay({ onSuccess }: MapOverlayProps) {
 
       <div className="flex flex-col items-center gap-3">
         <span className="text-xs text-stone-400 text-center">
-          {aligned ? '🟢 星標已重合 — 提示圖已解鎖' : '🎯 拖曳旋轉紙地圖，對齊平板上的星芒'}
+          {aligned ? '🟢 星標已重合 — 提示圖已解鎖' : '🎯 在圓形區域拖曳旋轉紙地圖，或使用下方按鈕微調'}
         </span>
 
         {aligned ? (
@@ -167,12 +194,10 @@ export function MapOverlay({ onSuccess }: MapOverlayProps) {
         ) : (
           <>
             <div
+              ref={rotateRef}
               onPointerDown={handlePointerDown}
-              onPointerMove={handlePointerMove}
-              onPointerUp={endDrag}
-              onPointerCancel={endDrag}
-              onPointerLeave={endDrag}
               className="relative w-full max-w-[min(560px,85vw)] aspect-square rounded-full border-4 border-stone-800 overflow-hidden shadow-2xl touch-none select-none bg-[#070b10] cursor-grab active:cursor-grabbing"
+              style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
             >
               <div className="absolute inset-0">
                 <div className="absolute inset-0 pointer-events-none z-10">
@@ -190,21 +215,41 @@ export function MapOverlay({ onSuccess }: MapOverlayProps) {
                 <motion.div
                   animate={{ rotate: angle }}
                   transition={isDragging ? { duration: 0 } : { type: 'spring', damping: 24, stiffness: 200 }}
-                  className="absolute inset-0 origin-center scale-120"
+                  className="absolute inset-0 origin-center scale-120 pointer-events-none"
                 >
                   <img
                     src={STAR_MAP}
                     alt="校園紙地圖"
                     draggable={false}
-                    className="absolute inset-0 w-full h-full object-contain opacity-[0.48]"
+                    className="absolute inset-0 w-full h-full object-contain opacity-[0.48] pointer-events-none"
                   />
                 </motion.div>
               </div>
             </div>
 
-            <p className="text-[11px] text-stone-500 font-mono">
-              旋轉角度 {Math.round(angle)}°
-            </p>
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => applyRotationDelta(-5)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-stone-900 border border-stone-700 text-stone-300 text-xs font-bold hover:bg-stone-800 active:scale-95 transition touch-manipulation"
+                aria-label="逆時針旋轉 5 度"
+              >
+                <RotateCcw className="h-4 w-4" />
+                -5°
+              </button>
+              <p className="text-[11px] text-stone-500 font-mono min-w-[5rem] text-center">
+                {Math.round(angle)}°
+              </p>
+              <button
+                type="button"
+                onClick={() => applyRotationDelta(5)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-stone-900 border border-stone-700 text-stone-300 text-xs font-bold hover:bg-stone-800 active:scale-95 transition touch-manipulation"
+                aria-label="順時針旋轉 5 度"
+              >
+                +5°
+                <RotateCw className="h-4 w-4" />
+              </button>
+            </div>
           </>
         )}
       </div>

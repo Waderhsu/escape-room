@@ -70,6 +70,7 @@ export default function App() {
   const [mapOpen, setMapOpen] = useState<boolean>(false);
   const [backpackTab, setBackpackTab] = useState<"items" | "progress">("items");
   const [showResetConfirm, setShowResetConfirm] = useState<boolean>(false);
+  const [showAlarmFailure, setShowAlarmFailure] = useState<boolean>(false);
   const [confettiActive, setConfettiActive] = useState<boolean>(false);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const navTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -107,9 +108,39 @@ export default function App() {
       audioEngine.stopBgm();
       return;
     }
-    const cfg = getLevelBgm(state.currentLevelId);
-    void audioEngine.playLevelBgm(cfg);
-    return () => audioEngine.stopBgm();
+
+    const levelId = state.currentLevelId;
+    const cfg = getLevelBgm(levelId);
+
+    const resumeBgm = () => {
+      if (!bgAmbient) return;
+      void audioEngine.ensureLevelBgm(getLevelBgm(levelId));
+    };
+
+    void audioEngine.ensureLevelBgm(cfg);
+
+    const onInteract = () => resumeBgm();
+    window.addEventListener("pointerdown", onInteract, { once: true });
+    window.addEventListener("touchstart", onInteract, { once: true });
+    window.addEventListener("keydown", onInteract, { once: true });
+
+    const onVisible = () => {
+      if (document.visibilityState === "visible") resumeBgm();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) resumeBgm();
+    };
+    window.addEventListener("pageshow", onPageShow);
+
+    return () => {
+      window.removeEventListener("pointerdown", onInteract);
+      window.removeEventListener("touchstart", onInteract);
+      window.removeEventListener("keydown", onInteract);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("pageshow", onPageShow);
+    };
   }, [state.currentLevelId, bgAmbient]);
 
   useEffect(() => {
@@ -236,6 +267,17 @@ export default function App() {
   const handleLevelGateSuccess = () => advanceToLevel("loc_alarm");
   const handleLockdownSuccess = () => advanceToLevel("loc_office_door");
 
+  const handleAlarmFailure = () => {
+    setShowAlarmFailure(true);
+  };
+
+  const confirmAlarmFailure = () => {
+    setShowAlarmFailure(false);
+    audioEngine.playBeep(400, 0.1);
+    setState((prev) => ({ ...prev, currentLevelId: "loc_gate" }));
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   const handleIntermission1Select = (choice: string) => {
     audioEngine.playBeep(500, 0.1);
     setIntermissionChoiceError("");
@@ -356,7 +398,17 @@ export default function App() {
             <span className="sm:hidden">偵探背包</span>
           </button>
           <button
-            onClick={() => { setBgAmbient(!bgAmbient); audioEngine.playBeep(bgAmbient ? 300 : 800, 0.1); }}
+            onClick={() => {
+              const next = !bgAmbient;
+              if (!next) {
+                audioEngine.setBgmEnabled(false);
+              } else {
+                audioEngine.setBgmEnabled(true);
+                void audioEngine.ensureLevelBgm(getLevelBgm(state.currentLevelId));
+              }
+              setBgAmbient(next);
+              audioEngine.playBeep(next ? 800 : 300, 0.1);
+            }}
             className={`p-2 rounded text-stone-400 hover:text-white transition-all ${bgAmbient ? "bg-amber-950/20 text-amber-500 border border-amber-500/20" : "bg-stone-900 border border-stone-800"}`}
             title={bgAmbient ? "關閉背景音樂" : "開啟背景音樂（依關卡切換）"}
           >
@@ -392,7 +444,9 @@ export default function App() {
             )}
 
             {state.currentLevelId === "loc_gate" && <UVKeypad onSuccess={handleLevelGateSuccess} />}
-            {state.currentLevelId === "loc_alarm" && <AlarmLockdown onSuccess={handleLockdownSuccess} />}
+            {state.currentLevelId === "loc_alarm" && (
+              <AlarmLockdown onSuccess={handleLockdownSuccess} onFailure={handleAlarmFailure} />
+            )}
             {state.currentLevelId === "loc_office_door" && <CalendarLevel onSuccess={() => advanceToLevel("loc_safe")} />}
             {state.currentLevelId === "loc_safe" && <PrimeSafe onSuccess={() => advanceToLevel("loc_tablet")} />}
             {state.currentLevelId === "loc_tablet" && <ParallelogramCanvas onSuccess={() => advanceToLevel("loc_star_map")} />}
@@ -496,6 +550,31 @@ export default function App() {
       </main>
 
       <AnimatePresence>
+        {showAlarmFailure && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-red-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 text-[#e7e5e4]">
+            <motion.div initial={{ scale: 0.95, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 10 }}
+              className="bg-[#1c1917] border border-red-900/50 rounded-2xl p-6 max-w-md w-full shadow-2xl space-y-4 text-center">
+              <div className="w-14 h-14 bg-red-950/50 border border-red-700/50 text-red-400 rounded-full flex items-center justify-center mx-auto text-2xl animate-pulse">🚨</div>
+              <div className="space-y-2">
+                <h3 className="text-red-300 font-bold text-lg font-serif italic tracking-wide">潛入行動暴露！</h3>
+                <p className="text-sm text-stone-300 leading-relaxed">
+                  警衛室的全域封鎖程序已啟動，保全手電筒的光束掃過走廊——<span className="text-red-400 font-semibold">你被發現了</span>。
+                </p>
+                <p className="text-xs text-stone-400 leading-relaxed">
+                  這次的調查以失敗收場。你只能退回校門，重新規劃潛入路線，再次挑戰警報中斷程序。
+                </p>
+              </div>
+              <button type="button" onClick={confirmAlarmFailure}
+                className="w-full py-3 bg-red-800 hover:bg-red-700 text-white rounded-xl text-sm font-bold transition-all active:scale-95 shadow-lg shadow-red-900/30">
+                退回校門，重新潛入
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
         {showResetConfirm && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-stone-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 text-[#e7e5e4]">
@@ -521,8 +600,8 @@ export default function App() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-stone-950/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 text-[#e7e5e4]">
             <motion.div initial={{ scale: 0.9, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 15 }}
-              className="bg-[#121214] border border-stone-800 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl relative flex flex-col">
-              <div className="flex justify-between items-start border-b border-stone-800 pb-4 mb-4">
+              className="bg-[#121214] border border-stone-800 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl relative flex flex-col">
+              <div className="flex justify-between items-start border-b border-stone-800 pb-4 mb-4 shrink-0">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🎒</span>
                   <h3 className="text-xl font-bold text-stone-100 font-serif italic tracking-wide">偵探探險包 ─ 案件檔案室</h3>
@@ -542,6 +621,7 @@ export default function App() {
                 ))}
               </div>
 
+              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-detective pr-1 -mr-1">
               {backpackTab === "items" && (
                 <div className="space-y-4">
                   <p className="text-xs text-stone-400 leading-relaxed mb-4">💡 這裡存放著你從校園各個角落解鎖、尋得的核心道具。</p>
@@ -569,7 +649,7 @@ export default function App() {
                   <p className="text-xs text-stone-400 leading-relaxed mb-4 bg-amber-950/10 p-2.5 border border-amber-500/15 rounded-xl">
                     💡 <b>地圖自由傳送已解鎖！</b>當你破關、卡關或需要重溫時，隨時點擊前方已解鎖或破解的關卡，即可立馬「快速傳送且回頭體驗」之前的解密情境或是尋找線索！
                   </p>
-                  <div className="space-y-2 max-h-[45vh] overflow-y-auto pr-1">
+                  <div className="space-y-2 pb-1">
                     {LEVELS.map((node, index) => {
                       const isUnlocked = state.unlockedLevels.includes(node.id);
                       const isCurrent = state.currentLevelId === node.id;
@@ -599,6 +679,7 @@ export default function App() {
                   </div>
                 </div>
               )}
+              </div>
 
               <div className="mt-6 pt-4 border-t border-stone-800 flex justify-between items-center text-xs text-stone-500 shrink-0">
                 <span>已解鎖校園地點：{state.unlockedLevels.length} / {LEVELS.length} 關卡</span>
