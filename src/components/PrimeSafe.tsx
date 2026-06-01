@@ -64,7 +64,7 @@ export function PrimeSafe({ onSuccess }: PrimeSafeProps) {
         <div className="flex flex-col items-center">
           <div className="p-5 rounded-2xl bg-slate-950/40 border-2 border-slate-700/50 w-full max-w-[280px]">
             <div className="bg-black py-3.5 px-3 rounded-xl border border-slate-800 text-center text-xl font-mono text-emerald-400 font-extrabold tracking-widest min-h-[48px] mb-4 shadow-[inset_0_0_10px_rgba(0,0,0,0.8)]">
-              {code || '---'}
+              {code || '-----'}
             </div>
             <div className="grid grid-cols-3 gap-2.5">
               {KEYS.map((key) => (

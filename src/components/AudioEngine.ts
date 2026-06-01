@@ -89,40 +89,11 @@ class AudioEngine {
     return this.bgmEnabled;
   }
 
-  isBgmActuallyPlaying() {
-    return (
-      (this.bgmAudio !== null && !this.bgmAudio.paused) ||
-      this.proceduralHandle !== null
-    );
-  }
-
-  /** Start or resume BGM; safe to call after refresh / tab focus. */
-  async ensureLevelBgm(config: BgmConfig) {
-    if (!this.bgmEnabled) return;
-
-    await this.unlockAudio();
-    if (!this.bgmEnabled) return;
-
-    if (this.isBgmActuallyPlaying() && this.currentProfile === config.profile) {
-      return;
-    }
-
-    await this.playLevelBgm(config);
-
-    if (!this.bgmEnabled) return;
-    if (this.isBgmActuallyPlaying()) return;
-
-    await new Promise((r) => window.setTimeout(r, 80));
-    if (!this.bgmEnabled) return;
-    if (this.isBgmActuallyPlaying() && this.currentProfile === config.profile) return;
-
-    await this.playLevelBgm(config);
-  }
-
   async playLevelBgm(config: BgmConfig) {
     if (!this.bgmEnabled) return;
     const sameProfilePlaying =
-      this.currentProfile === config.profile && this.isBgmActuallyPlaying();
+      this.currentProfile === config.profile &&
+      ((this.bgmAudio && !this.bgmAudio.paused) || this.proceduralHandle !== null);
     if (sameProfilePlaying) return;
 
     this.stopBgm();
@@ -394,25 +365,65 @@ class AudioEngine {
           ], 700, 'sine');
           break;
 
-        case 'piano-room':
-          // Recognizable lullaby phrase (public-domain style)
-          playMelodyLoop([
-            { freq: N.C5, dur: 380, type: 'triangle', vol: 0.13 },
-            { freq: N.C5, dur: 380, type: 'triangle', vol: 0.12 },
-            { freq: N.G5, dur: 380, type: 'triangle', vol: 0.12 },
-            { freq: N.G5, dur: 380, type: 'triangle', vol: 0.12 },
-            { freq: N.A5, dur: 380, type: 'triangle', vol: 0.12 },
-            { freq: N.A5, dur: 380, type: 'triangle', vol: 0.12 },
-            { freq: N.G5, dur: 720, type: 'triangle', vol: 0.13 },
-            { freq: N.F5, dur: 380, type: 'triangle', vol: 0.11 },
-            { freq: N.F5, dur: 380, type: 'triangle', vol: 0.11 },
-            { freq: N.E5, dur: 380, type: 'triangle', vol: 0.11 },
-            { freq: N.E5, dur: 380, type: 'triangle', vol: 0.11 },
-            { freq: N.D5, dur: 380, type: 'triangle', vol: 0.11 },
-            { freq: N.D5, dur: 380, type: 'triangle', vol: 0.11 },
-            { freq: N.C5, dur: 900, type: 'triangle', vol: 0.13 },
-          ], 400, 'triangle');
+        case 'piano-room': {
+          // "Little Bee" (小蜜蜂) — jianpu in C major, 4/4 @ ~96 BPM
+          const Q = 312; // quarter note (crotchet)
+          const H = Q * 2; // half note (minim)
+          const R = Q; // quarter rest
+          playMelodyLoop(
+            [
+              // Phrase 1: 5 3 3 — | 4 2 2 — | 1 2 3 4 | 5 5 5 —
+              { freq: N.G4, dur: Q, vol: 0.12 }, // 5
+              { freq: N.E4, dur: Q, vol: 0.12 }, // 3
+              { freq: N.E4, dur: Q, vol: 0.12 }, // 3
+              { freq: 0, dur: R }, // rest
+              { freq: N.F4, dur: Q, vol: 0.12 }, // 4
+              { freq: N.D4, dur: Q, vol: 0.12 }, // 2
+              { freq: N.D4, dur: Q, vol: 0.12 }, // 2
+              { freq: 0, dur: R }, // rest
+              { freq: N.C4, dur: Q, vol: 0.12 }, // 1
+              { freq: N.D4, dur: Q, vol: 0.12 }, // 2
+              { freq: N.E4, dur: Q, vol: 0.12 }, // 3
+              { freq: N.F4, dur: Q, vol: 0.12 }, // 4
+              { freq: N.G4, dur: Q, vol: 0.12 }, // 5
+              { freq: N.G4, dur: Q, vol: 0.12 }, // 5
+              { freq: N.G4, dur: H, vol: 0.13 }, // 5 — (half)
+              // Phrase 2: 5 3 3 — | 4 2 2 — | 1 3 5 5 | 3 — — —
+              { freq: N.G4, dur: Q, vol: 0.12, gap: 40 },
+              { freq: N.E4, dur: Q, vol: 0.12 },
+              { freq: N.E4, dur: Q, vol: 0.12 },
+              { freq: 0, dur: R },
+              { freq: N.F4, dur: Q, vol: 0.12 },
+              { freq: N.D4, dur: Q, vol: 0.12 },
+              { freq: N.D4, dur: Q, vol: 0.12 },
+              { freq: 0, dur: R },
+              { freq: N.C4, dur: Q, vol: 0.12 }, // 1
+              { freq: N.E4, dur: Q, vol: 0.12 }, // 3
+              { freq: N.G4, dur: Q, vol: 0.12 }, // 5
+              { freq: N.G4, dur: Q, vol: 0.12 }, // 5
+              { freq: N.E4, dur: H, vol: 0.12 }, // 3 — (half)
+              { freq: 0, dur: H }, // — — — (half rest)
+              // Phrase 3: 2 2 2 2 | 2 3 4 — | 3 3 3 3 | 3 4 5 —
+              { freq: N.D4, dur: Q, vol: 0.11, gap: 40 },
+              { freq: N.D4, dur: Q, vol: 0.11 },
+              { freq: N.D4, dur: Q, vol: 0.11 },
+              { freq: N.D4, dur: Q, vol: 0.11 },
+              { freq: N.D4, dur: Q, vol: 0.11 }, // 2
+              { freq: N.E4, dur: Q, vol: 0.11 }, // 3
+              { freq: N.F4, dur: H, vol: 0.12 }, // 4 — (half)
+              { freq: N.E4, dur: Q, vol: 0.11 }, // 3
+              { freq: N.E4, dur: Q, vol: 0.11 },
+              { freq: N.E4, dur: Q, vol: 0.11 },
+              { freq: N.E4, dur: Q, vol: 0.11 },
+              { freq: N.E4, dur: Q, vol: 0.11 }, // 3
+              { freq: N.F4, dur: Q, vol: 0.11 }, // 4
+              { freq: N.G4, dur: H, vol: 0.13 }, // 5 — (half)
+            ],
+            720,
+            'triangle',
+          );
           break;
+        }
 
         case 'primary-innocent':
           // Bouncy playground melody

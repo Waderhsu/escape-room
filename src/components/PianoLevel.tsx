@@ -9,8 +9,8 @@ interface PianoLevelProps {
 }
 
 const VALID_ANSWERS = ['小星星', 'twinkle', '小星星歌'];
-const PIANO_KEYS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
-const NOTE_LABELS = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Ti', 'Do'];
+const PIANO_KEYS = [1, 2, 3, 4, 5, 6, 7] as const;
+const NOTE_LABELS = ['Do', 'Re', 'Mi', 'Fa', 'Sol', 'La', 'Ti'];
 
 export function PianoLevel({ onSuccess }: PianoLevelProps) {
   const [answer, setAnswer] = useState('');

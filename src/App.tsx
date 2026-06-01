@@ -109,37 +109,25 @@ export default function App() {
       return;
     }
 
-    const levelId = state.currentLevelId;
-    const cfg = getLevelBgm(levelId);
-
-    const resumeBgm = () => {
-      if (!bgAmbient) return;
-      void audioEngine.ensureLevelBgm(getLevelBgm(levelId));
+    const cfg = getLevelBgm(state.currentLevelId);
+    const startBgm = () => {
+      void audioEngine.unlockAudio().then(() => {
+        void audioEngine.playLevelBgm(cfg);
+      });
     };
 
-    void audioEngine.ensureLevelBgm(cfg);
+    startBgm();
 
-    const onInteract = () => resumeBgm();
-    window.addEventListener("pointerdown", onInteract, { once: true });
-    window.addEventListener("touchstart", onInteract, { once: true });
-    window.addEventListener("keydown", onInteract, { once: true });
-
-    const onVisible = () => {
-      if (document.visibilityState === "visible") resumeBgm();
-    };
-    document.addEventListener("visibilitychange", onVisible);
-
-    const onPageShow = (e: PageTransitionEvent) => {
-      if (e.persisted) resumeBgm();
-    };
-    window.addEventListener("pageshow", onPageShow);
+    const onInteract = () => startBgm();
+    window.addEventListener('pointerdown', onInteract, { once: true });
+    window.addEventListener('touchstart', onInteract, { once: true });
+    window.addEventListener('keydown', onInteract, { once: true });
 
     return () => {
-      window.removeEventListener("pointerdown", onInteract);
-      window.removeEventListener("touchstart", onInteract);
-      window.removeEventListener("keydown", onInteract);
-      document.removeEventListener("visibilitychange", onVisible);
-      window.removeEventListener("pageshow", onPageShow);
+      audioEngine.stopBgm();
+      window.removeEventListener('pointerdown', onInteract);
+      window.removeEventListener('touchstart', onInteract);
+      window.removeEventListener('keydown', onInteract);
     };
   }, [state.currentLevelId, bgAmbient]);
 
@@ -404,7 +392,9 @@ export default function App() {
                 audioEngine.setBgmEnabled(false);
               } else {
                 audioEngine.setBgmEnabled(true);
-                void audioEngine.ensureLevelBgm(getLevelBgm(state.currentLevelId));
+                void audioEngine.unlockAudio().then(() => {
+                  void audioEngine.playLevelBgm(getLevelBgm(state.currentLevelId));
+                });
               }
               setBgAmbient(next);
               audioEngine.playBeep(next ? 800 : 300, 0.1);
@@ -600,8 +590,8 @@ export default function App() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 bg-stone-950/95 backdrop-blur-xl z-50 flex items-center justify-center p-4 text-[#e7e5e4]">
             <motion.div initial={{ scale: 0.9, y: 15 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 15 }}
-              className="bg-[#121214] border border-stone-800 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[85vh] overflow-hidden shadow-2xl relative flex flex-col">
-              <div className="flex justify-between items-start border-b border-stone-800 pb-4 mb-4 shrink-0">
+              className="bg-[#121214] border border-stone-800 rounded-2xl p-6 md:p-8 max-w-2xl w-full max-h-[85vh] overflow-y-auto scrollbar-detective shadow-2xl relative flex flex-col">
+              <div className="flex justify-between items-start border-b border-stone-800 pb-4 mb-4">
                 <div className="flex items-center gap-2">
                   <span className="text-2xl">🎒</span>
                   <h3 className="text-xl font-bold text-stone-100 font-serif italic tracking-wide">偵探探險包 ─ 案件檔案室</h3>
@@ -621,7 +611,6 @@ export default function App() {
                 ))}
               </div>
 
-              <div className="flex-1 min-h-0 overflow-y-auto scrollbar-detective pr-1 -mr-1">
               {backpackTab === "items" && (
                 <div className="space-y-4">
                   <p className="text-xs text-stone-400 leading-relaxed mb-4">💡 這裡存放著你從校園各個角落解鎖、尋得的核心道具。</p>
@@ -649,7 +638,7 @@ export default function App() {
                   <p className="text-xs text-stone-400 leading-relaxed mb-4 bg-amber-950/10 p-2.5 border border-amber-500/15 rounded-xl">
                     💡 <b>地圖自由傳送已解鎖！</b>當你破關、卡關或需要重溫時，隨時點擊前方已解鎖或破解的關卡，即可立馬「快速傳送且回頭體驗」之前的解密情境或是尋找線索！
                   </p>
-                  <div className="space-y-2 pb-1">
+                  <div className="space-y-2 max-h-[45vh] overflow-y-auto scrollbar-detective pr-2">
                     {LEVELS.map((node, index) => {
                       const isUnlocked = state.unlockedLevels.includes(node.id);
                       const isCurrent = state.currentLevelId === node.id;
@@ -679,7 +668,6 @@ export default function App() {
                   </div>
                 </div>
               )}
-              </div>
 
               <div className="mt-6 pt-4 border-t border-stone-800 flex justify-between items-center text-xs text-stone-500 shrink-0">
                 <span>已解鎖校園地點：{state.unlockedLevels.length} / {LEVELS.length} 關卡</span>
